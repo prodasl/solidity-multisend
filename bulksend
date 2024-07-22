@@ -1,0 +1,63 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+contract TRC20 is ERC20 {
+    constructor(
+        string memory name,
+        string memory symbol,
+        uint256 initialSupply
+    ) ERC20(name, symbol) {
+        _mint(msg.sender, initialSupply * (10 ** uint256(decimals())));
+    }
+}
+
+contract BulkSend {
+    address public owner;
+    uint public tokenSendFee; // in wei
+    uint public trxSendFee; // in wei
+    
+        
+    constructor() payable{
+        owner = msg.sender;
+    }
+    
+    modifier onlyOwner() {
+      require(msg.sender == owner);
+      _;
+    }
+
+    function bulkSendTRX(address[] memory addresses, uint256[] memory amounts) public payable returns(bool success) {
+        require(addresses.length == amounts.length, "Array lengths mismatch");
+
+        for (uint256 i = 0; i < addresses.length; i++) {
+            address payable recipient = payable(addresses[i]);
+            recipient.transfer(amounts[i]);
+        }
+        return true;
+    }
+    
+   
+    
+    function bulkSendToken(address tokenAddr, address[] memory addresses, uint256[] memory amounts) public payable returns(bool success) {
+        require(addresses.length == amounts.length, "Array lengths mismatch");
+        TRC20 token = TRC20(tokenAddr);
+
+        for (uint256 i = 0; i < addresses.length; i++) {
+            token.transfer(addresses[i], amounts[i]);
+        }
+        return true;
+    }
+    
+        
+    function setTokenFee(uint _tokenSendFee) public onlyOwner returns(bool success){
+        tokenSendFee = _tokenSendFee;
+        return true;
+    }
+    
+    function setTrxFee(uint _trxSendFee) public onlyOwner returns(bool success){
+        trxSendFee = _trxSendFee;
+        return true;
+    }
+
+}
