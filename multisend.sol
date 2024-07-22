@@ -1,4 +1,5 @@
-pragma solidity 0.4.24;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.4.24;
 
 /**
  * @title SafeMath
@@ -72,18 +73,18 @@ contract Token {
     
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {}
 
-    function allowance(address _owner, address _spender) public constant returns (uint256 remaining) {}
+    function allowance(address _owner, address _spender) public returns (uint256 remaining) {}
 }
 
 contract BulkSend {
     using SafeMath for uint256;
     
     address public owner;
-    uint public tokenSendFee; // in wei
-    uint public ethSendFee; // in wei
+    uint public tokenSendFee; // in sun
+    uint public ethSendFee; // in sun
 
     
-    constructor() public payable{
+    constructor() payable{
         owner = msg.sender;
     }
     
@@ -92,30 +93,31 @@ contract BulkSend {
       _;
     }
     
-    function bulkSendEth(address[] addresses, uint256[] amounts) public payable returns(bool success){
+    function bulkSendEth(address payable[]  memory addresses, uint256[] memory  amounts) public payable returns(bool success){
         uint total = 0;
         for(uint8 i = 0; i < amounts.length; i++){
             total = total.add(amounts[i]);
         }
         
         //ensure that the ethreum is enough to complete the transaction
-        uint requiredAmount = total.add(ethSendFee * 1 wei); //.add(total.div(100));
-        require(msg.value >= (requiredAmount * 1 wei));
+        uint requiredAmount = total.add(ethSendFee * 1 sun); //.add(total.div(100));
+        require(msg.value >= (requiredAmount * 1 sun));
         
         //transfer to each address
         for (uint8 j = 0; j < addresses.length; j++) {
-            addresses[j].transfer(amounts[j] * 1 wei);
+            addresses[j].transfer(amounts[j] * 1 sun);
         }
         
         //return change to the sender
-        if(msg.value * 1 wei > requiredAmount * 1 wei){
+        if(msg.value * 1 sun > requiredAmount * 1 sun){
             uint change = msg.value.sub(requiredAmount);
-            msg.sender.transfer(change * 1 wei);
+            address payable sender = payable(msg.sender);
+            sender.transfer(change * 1 sun);
         }
         return true;
     }
     
-    function getbalance(address addr) public constant returns (uint value){
+    function getbalance(address addr) public view returns (uint value){
         return addr.balance;
     }
     
@@ -123,8 +125,8 @@ contract BulkSend {
         return true;
     }
     
-    function withdrawEther(address addr, uint amount) public onlyOwner returns(bool success){
-        addr.transfer(amount * 1 wei);
+    function withdrawEther(address payable addr, uint amount) public onlyOwner returns(bool success){
+        addr.transfer(amount * 1 sun);
         return true;
     }
     
@@ -133,14 +135,14 @@ contract BulkSend {
         return true;
     }
     
-    function bulkSendToken(Token tokenAddr, address[] addresses, uint256[] amounts) public payable returns(bool success){
+    function bulkSendToken(Token tokenAddr, address payable[] memory addresses, uint256[] memory amounts) public payable returns(bool success){
         uint total = 0;
-        address multisendContractAddress = this;
+        address payable  multisendContractAddress = payable(msg.sender);
         for(uint8 i = 0; i < amounts.length; i++){
             total = total.add(amounts[i]);
         }
         
-        require(msg.value * 1 wei >= tokenSendFee * 1 wei);
+        require(msg.value * 1 sun >= tokenSendFee * 1 sun);
         
         // check if user has enough balance
         require(total <= tokenAddr.allowance(msg.sender, multisendContractAddress));
@@ -150,9 +152,10 @@ contract BulkSend {
             tokenAddr.transferFrom(msg.sender, addresses[j], amounts[j]);
         }
         // transfer change back to the sender
-        if(msg.value * 1 wei > (tokenSendFee * 1 wei)){
+        if(msg.value * 1 sun > (tokenSendFee * 1 sun)){
             uint change = (msg.value).sub(tokenSendFee);
-            msg.sender.transfer(change * 1 wei);
+            address payable sender = payable(msg.sender);
+            sender.transfer(change * 1 sun);
         }
         return true;
         
@@ -168,7 +171,7 @@ contract BulkSend {
         return true;
     }
     
-    function destroy (address _to) public onlyOwner {
+    function destroy (address payable _to) public onlyOwner {
         selfdestruct(_to);
     }
 }
